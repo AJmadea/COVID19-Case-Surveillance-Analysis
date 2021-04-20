@@ -4,10 +4,14 @@ from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 import pandas as pd
 import plotly.express as px
+import Cleaning as c
 
 
-def find_and_graph_K(_data):
-    _map = iterate_through_k(_data)
+def find_and_graph_K(_data, columns, maxK):
+    _data = c.drop_rows_with_nil_values(_data, columns)
+    _data = filter_columns(_data, columns)
+    _map = iterate_through_k(_data, maxK)
+    print(_map)
     acc_df = create_acc_df(_map)
     graph_acc(acc_df)
 
@@ -32,22 +36,47 @@ def create_acc_df(_map):
                                'Score': scores}, columns=['K', 'Score Type', 'Score'])
 
 
-def iterate_through_k(_data):
+def filter_columns(_data, list_of_columns):
+    for _c in _data.columns:
+        if _c not in list_of_columns:
+            _data.drop(_c, axis=1, inplace=True)
+    return _data
+
+
+def iterate_through_k(_data, maxK):
     _map = {}
-    _data.drop(['race_ethnicity_combined', 'current_status'], axis=1, inplace=True)
 
-    dummies = pd.get_dummies(_data[_data.columns[4:]])
-    x = dummies[dummies.columns[:-2]]
-    maxK = 10
-    y = dummies[dummies.columns[-2:]]
+    print('creating dummies for these columns:', _data.columns)
+    dummies = pd.get_dummies(_data)
 
-    xTrain, xTest, yTrain, yTest = train_test_split(x, y, test_size=.7)
+    xColumns = []
+
+    for c in dummies.columns:
+        if (c != 'death_yn_Yes') & (c != 'death_yn_No'):
+            xColumns.append(c)
+
+    print('xColumns:', xColumns)
+    x = dummies[xColumns]
+    print(dummies.columns)
+    y = dummies[['death_yn_Yes']]
+
+    xTrain, xTest, yTrain, yTest = train_test_split(x, y, test_size=.7, random_state=100)
+
     yTest = yTest['death_yn_Yes'].to_numpy()
+
+    print(yTest)
     for k in range(1, maxK):
         knn = KNeighborsClassifier(n_neighbors=k)
+        print('K=', k)
+        print('Currently fitting...')
         knn.fit(xTrain, yTrain)
+
+        print("Predicting")
         predicted = knn.predict(xTest)
+
+        print("Calculating Accuracy")
         jaccard = jaccard_score(y_pred=predicted, y_true=yTest)
         f1 = f1_score(y_pred=predicted, y_true=yTest)
+
         _map.__setitem__(k, [jaccard, f1])
     return _map
