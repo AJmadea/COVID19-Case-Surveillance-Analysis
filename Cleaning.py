@@ -2,12 +2,32 @@ import pandas as pd
 import plotly.express as px
 
 
+def drop_rows_with_nil_values(_data, in_these_columns):
+    # Verify that all columns in in_these_columns exists as a column
+    print("Validating that these columns exist in the dataframe...")
+    for c in in_these_columns:
+        if c not in _data.columns:
+            print(c, 'is not in the dataframe!')
+            in_these_columns.remove(c)
+
+    intersection = set(_data.columns).intersection(set(in_these_columns))
+    for c in intersection:
+        print('Currently working on:', c)
+        _data = _data[(_data[c] != 'Missing') & (_data[c] != 'Unknown')]
+    print('After Dropping the nil values:', _data.shape)
+    return _data
+
 def drop_useless(_data):
+    # Drops the 'Other' option in the sex column since its typically < 1% of the population
+    _data = _data[_data['sex'] != 'Other']
+
     candidate_columns = _data.columns[4:]
     for c in candidate_columns:
-        print(c)
+        print('Currently working on: ', c)
         _data = _data[(_data[c] != 'Missing') & (_data[c] != 'Unknown')]
+
     _data.to_csv('data/no_missing_no_unknown.csv')
+    return _data
 
 
 def create_default_map(_n):
