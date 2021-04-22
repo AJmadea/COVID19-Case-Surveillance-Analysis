@@ -8,19 +8,19 @@ import Cleaning as c
 import warnings
 
 
-def find_targets(_data, x_columns, target_columns, k=5):
+def find_targets(_data, x_columns, target_columns, k=5, include_targets=True):
     warnings.filterwarnings('ignore')
     all_col = x_columns
     all_col.extend(target_columns)
     _data = filter_columns(_data, list_of_columns=all_col)
     _data = c.drop_rows_with_nil_values(_data, all_col)
-    _map = iterate_through_targets(_data, x_columns, target_columns, k)
+    _map = iterate_through_targets(_data, x_columns, target_columns, include_targets=include_targets, k=k)
     acc_df = create_acc_df(_map)
     acc_df.to_csv('data/private_data/private_data_target_cols.csv')
     graph_bar_acc(acc_df)
 
 
-def iterate_through_targets(_data, x_columns, target_columns, k=5):
+def iterate_through_targets(_data, x_columns, target_columns, include_targets=True, k=5):
     _map = {}
 
     dummies = pd.get_dummies(_data)
@@ -34,9 +34,15 @@ def iterate_through_targets(_data, x_columns, target_columns, k=5):
         dummies = pd.get_dummies(_data)
         x_cols = []
 
-        for _c in dummies.columns:
-            if (_c != col + "_Yes") & (_c != col + "_No"):
-                x_cols.append(_c)
+
+        if include_targets:
+            for _c in dummies.columns:
+                if (_c != col + "_Yes") & (_c != col + "_No"):
+                    x_cols.append(_c)
+        else:
+            for _c in dummies.columns:
+                if (_c + "_Yes" not in target_columns) & (_c + "_No" not in target_columns):
+                    x_cols.append(_c)
 
         col += '_Yes'
 
