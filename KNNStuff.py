@@ -6,51 +6,53 @@ import pandas as pd
 import plotly.express as px
 import Cleaning as c
 import warnings
+from datetime import datetime as dt
 
 
-def find_targets(_data, x_columns, target_columns, k=5, include_targets=True):
+def find_targets(_data, x_columns, target_columns, include_targets, k=5):
     warnings.filterwarnings('ignore')
-    all_col = x_columns
-    all_col.extend(target_columns)
+    begin = dt.today()
+    print("Start at", begin)
+    all_col = x_columns.copy()
+    all_col.extend(target_columns.copy())
     _data = filter_columns(_data, list_of_columns=all_col)
     _data = c.drop_rows_with_nil_values(_data, all_col)
     _map = iterate_through_targets(_data, x_columns, target_columns, include_targets=include_targets, k=k)
     acc_df = create_acc_df(_map)
-    acc_df.to_csv('data/private_data/private_data_target_cols.csv')
+    today = dt.today()
+    today_string = today.isoformat().replace(':', '_').replace("-", "_")
+    acc_df.to_csv('data/acc_frames/private_data_target_cols_{}.csv'.format(today_string))
+    print("Time taken: ", today - begin)
     graph_bar_acc(acc_df)
 
 
-def iterate_through_targets(_data, x_columns, target_columns, include_targets=True, k=5):
+def iterate_through_targets(_data, x_columns, target_columns, include_targets, k=5):
     _map = {}
-
-    dummies = pd.get_dummies(_data)
-    print(x_columns)
-
+    print('include other targets:', include_targets)
+    print('x_columns', x_columns)
+    print('targets from params:', target_columns)
+    x_col_data = _data[x_columns]
     for col in target_columns:
+        temp_data = None
+        if include_targets:
+            temp_data = pd.concat([x_col_data, _data[target_columns]], axis=1)
+        else:
+            temp_data = pd.concat([x_col_data, _data[col]], axis=1)
 
-        print(x_columns)
-        print(target_columns)
+        dummies = pd.get_dummies(temp_data)
+        print(dummies.columns)
 
-        dummies = pd.get_dummies(_data)
         x_cols = []
 
-
-        if include_targets:
-            for _c in dummies.columns:
-                if (_c != col + "_Yes") & (_c != col + "_No"):
-                    x_cols.append(_c)
-        else:
-            for _c in dummies.columns:
-                if (_c + "_Yes" not in target_columns) & (_c + "_No" not in target_columns):
-                    x_cols.append(_c)
+        for _c in dummies.columns:
+            if (_c != col + "_Yes") & (_c != col + "_No"):
+                x_cols.append(_c)
 
         col += '_Yes'
 
-        print('xColumns:', x_cols)
+        print('x_cols:', x_cols)
         x = dummies[x_cols]
-        print(dummies.columns)
         y = dummies[[col]]
-
         xTrain, xTest, yTrain, yTest = train_test_split(x, y, test_size=.7)
 
         yTest = yTest[col].to_numpy()
