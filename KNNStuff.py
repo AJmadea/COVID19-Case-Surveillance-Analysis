@@ -9,6 +9,20 @@ import warnings
 from datetime import datetime as dt
 
 
+def get_different_dummies_columns(_data):
+    columns = _data.columns
+    c = []
+    for col in columns:
+        l = _data[col].unique()
+
+        for e in l:
+            c.append(str(col) + "_" + str(e))
+    return c
+
+
+
+
+
 def find_targets(_data, x_columns, target_columns, include_targets, k=5):
     warnings.filterwarnings('ignore')
     begin = dt.today()
@@ -39,16 +53,13 @@ def iterate_through_targets(_data, x_columns, target_columns, include_targets, k
         else:
             temp_data = pd.concat([x_col_data, _data[col]], axis=1)
 
-        dummies = pd.get_dummies(temp_data)
+        dummies = pd.get_dummies(temp_data, columns=x_columns)
         print(dummies.columns)
 
-        x_cols = []
+        x_cols = dummies.columns.tolist().copy()
+        #x_cols.remove(col)
 
-        for _c in dummies.columns:
-            if (_c != col + "_Yes") & (_c != col + "_No"):
-                x_cols.append(_c)
-
-        col += '_Yes'
+        col += '_No'
 
         print('x_cols:', x_cols)
         x = dummies[x_cols]
@@ -129,7 +140,7 @@ def iterate_through_k(_data, maxK, target='death_yn'):
         if (_c != target+"_Yes") & (_c != target+"_No"):
             xColumns.append(_c)
 
-    target += '_Yes'
+    target += '_No'
 
     print('xColumns:', xColumns)
     x = dummies[xColumns]
