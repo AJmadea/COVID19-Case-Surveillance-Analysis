@@ -17,23 +17,21 @@ def drop_rows_with_nil_values(_data, in_these_columns):
     print('After Dropping the nil values:', _data.shape)
     return _data
 
-def drop_useless(_data):
-    # Drops the 'Other' option in the sex column since its typically < 1% of the population
-    _data = _data[_data['sex'] != 'Other']
 
-    candidate_columns = _data.columns[4:]
-    for c in candidate_columns:
+def drop_useless(_data):
+    _data.dropna(inplace=True)
+    for c in _data.columns:
         print('Currently working on: ', c)
         _data = _data[(_data[c] != 'Missing') & (_data[c] != 'Unknown')]
 
-    _data.to_csv('data/no_missing_no_unknown.csv')
+    #_data.to_csv('data/no_missing_no_unknown.csv')
     return _data
 
 
 def create_default_map(_n):
     _map = {}
     for i in range(0, _n):
-        _map.__setitem__(i, 0)
+        _map[i] = 0
     return _map
 
 
@@ -53,7 +51,7 @@ def create_map_of_unknown_or_missing(_data):
 
         t = _map.get(s)
         t += 1
-        _map.__setitem__(s, t)
+        _map[s] = t
 
     # Creates a list of strings 'n values unknown or missing'
     columns = ['{} values unknown or missing'.format(i) for i in range(0, len(candidate_columns))]
@@ -66,19 +64,9 @@ def create_map_of_unknown_or_missing(_data):
 
 def get_value_count_graphs(_data):
     for each_col in _data.columns:
+        print("Currently in", each_col)
         fig = px.bar(_data[each_col].value_counts().sort_index(), title=each_col.upper())
         fig.show()
-
-
-def get_data(source='api'):
-    if source == 'api': # API endpoint.  1000 rows
-        src = 'https://data.cdc.gov/resource/vbim-akqf.csv'
-    elif source == 'file':
-        src = 'data/COVID-19_Case_surveillance_Public_Use_Data.csv'
-    else:
-        raise KeyError('source must be either "api" or "file"')
-    _data = pd.read_csv(src)
-    return _data
 
 
 def print_value_counts(_data):
