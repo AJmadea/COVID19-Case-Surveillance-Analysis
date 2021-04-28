@@ -1,10 +1,34 @@
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss
 from sklearn.model_selection import train_test_split
+from sklearn.feature_selection import RFE
 import pandas as pd
-
 import ModelMethods as mm
-# get rid of certain columns
+
+
+def use_rfe(_data, x_columns, target):
+    _data = _data[x_columns]
+    uniques = mm.get_different_dummies_columns(_data[[target]])
+    dummies = pd.get_dummies(_data, columns=x_columns)
+
+    x_dummies = dummies.columns.tolist().copy()
+    for col in dummies.columns:
+        if col in uniques:
+            x_dummies.remove(col)
+
+    x = dummies[x_dummies]
+    y = dummies[uniques[0]]
+
+    xTrain, xTest, yTrain, yTest = train_test_split(x, y, train_size=.7)
+    lm = LogisticRegression(n_jobs=-1, verbose=True, max_iter=1000000)
+    print("Creating RFECV")
+    rfe = RFE(estimator=lm, verbose=True, )
+    print("Fitting training data")
+    rfe.fit(xTrain, yTrain)
+    print(rfe.ranking_)
+
+
+
 
 
 def iterate_through_dummies(_data, x_columns, target):
@@ -25,7 +49,7 @@ def iterate_through_dummies(_data, x_columns, target):
 
         print("Current Dummy Target", u)
         print('Splitting...')
-        xTrain, xTest, yTrain, yTest = train_test_split(x, y, test_size=.7)
+        xTrain, xTest, yTrain, yTest = train_test_split(x, y, train_size=.7)
 
         print("Creating LogReg")
         lm = LogisticRegression(n_jobs=-1)
