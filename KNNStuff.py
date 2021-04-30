@@ -7,37 +7,70 @@ import plotly.express as px
 import Cleaning as c
 import warnings
 from datetime import datetime as dt
-
-
-def get_different_dummies_columns(_data):
-    columns = _data.columns
-    c = []
-    for col in columns:
-        l = _data[col].unique()
-
-        for e in l:
-            c.append(str(col) + "_" + str(e))
-    return c
-
-
-
+import ModelMethods as mm
 
 
 def find_targets(_data, x_columns, target_columns, include_targets, k=5):
     warnings.filterwarnings('ignore')
-    begin = dt.today()
-    print("Start at", begin)
+
     all_col = x_columns.copy()
     all_col.extend(target_columns.copy())
-    _data = filter_columns(_data, list_of_columns=all_col)
+    _data = mm.filter_columns(_data, list_of_columns=all_col)
     _data = c.drop_rows_with_nil_values(_data, all_col)
     _map = iterate_through_targets(_data, x_columns, target_columns, include_targets=include_targets, k=k)
-    acc_df = create_acc_df(_map)
-    today = dt.today()
-    today_string = today.isoformat().replace(':', '_').replace("-", "_")
-    acc_df.to_csv('data/acc_frames/private_data_target_cols_{}.csv'.format(today_string))
-    print("Time taken: ", today - begin)
-    graph_bar_acc(acc_df)
+    acc_df = mm.create_acc_df(_map)
+
+    mm.write_df_to_file(acc_df, 'data/acc_frames/private_data_target_cols_{}.csv')
+
+    mm.graph_bar_acc(acc_df)
+
+
+def iterate_unique_graph_write(_data, target, k):
+    _data = c.drop_useless(_data)
+
+    _map = iterate_through_unique(_data, target, k)
+    acc_df = mm.create_acc_df(_map)
+
+    mm.write_df_to_file(acc_df, 'data/acc_frames/acc_uniques_{}.csv')
+
+    mm.graph_bar_acc(acc_df)
+
+
+def iterate_through_unique(_data, target, k=5):
+    _map = {}
+
+    dummies = pd.get_dummies(_data)
+    uniques = mm.get_different_dummies_columns(_data[[target]])
+
+    for u in uniques:
+        x_dummies = dummies.columns.tolist()
+        for col in dummies.columns:
+            if col in uniques:
+                x_dummies.remove(col)
+
+        print('x_dummies: ', x_dummies)
+        x = dummies[x_dummies]
+        y = dummies[u]
+        print("Current Dummy Target", u)
+        print('Splitting...')
+        xTrain, xTest, yTrain, yTest = train_test_split(x, y, train_size=.7)
+
+        print("Creating KNN & k=", k)
+        knn = KNeighborsClassifier(n_neighbors=k, n_jobs=-1)
+
+        print('Currently fitting...')
+        knn.fit(xTrain, yTrain)
+
+        print("Predicting...")
+        predicted = knn.predict(xTest)
+
+        print("Calculating Accuracy")
+        jaccard = jaccard_score(y_pred=predicted, y_true=yTest)
+        f1 = f1_score(y_pred=predicted, y_true=yTest)
+
+        _map[u] = [jaccard, f1]
+        print(_map.get(u))
+    return _map
 
 
 def iterate_through_targets(_data, x_columns, target_columns, include_targets, k=5):
@@ -64,7 +97,7 @@ def iterate_through_targets(_data, x_columns, target_columns, include_targets, k
         print('x_cols:', x_cols)
         x = dummies[x_cols]
         y = dummies[[col]]
-        xTrain, xTest, yTrain, yTest = train_test_split(x, y, test_size=.7)
+        xTrain, xTest, yTrain, yTest = train_test_split(x, y, train_size=.7)
 
         yTest = yTest[col].to_numpy()
         knn = KNeighborsClassifier(n_neighbors=k, n_jobs=-1)
@@ -87,49 +120,48 @@ def iterate_through_targets(_data, x_columns, target_columns, include_targets, k
 def find_and_graph_K(_data, columns, maxK, target):
     warnings.filterwarnings('ignore')
     _data = c.drop_rows_with_nil_values(_data, columns)
-    _data = filter_columns(_data, columns)
+    _data = mm.filter_columns(_data, columns)
     _map = iterate_through_k(_data, maxK, target)
     print(_map)
-    acc_df = create_acc_df(_map)
+    acc_df = mm.create_acc_df(_map)
     acc_df.to_csv('data/acc_df.csv')
-    graph_line_acc(acc_df)
+    mm.graph_line_acc(acc_df)
 
 
-def graph_bar_acc(df):
-    fig = px.bar(df, barmode='group', x='Index', y='Score', color='Score Type',
-                 title='KNN Accuracy For Different Targets')
-    fig.show()
+def find_graph_k_dummies(_data, dummies, maxK, target, priority):
 
+    _map = {}
 
-def graph_line_acc(df):
-    fig = px.line(df, x='Index', y='Score', color='Score Type', title='KNN Accuracy')
-    fig.show()
+    print(dummies)
+    dummy_data = pd.get_dummies(_data)
+    x = dummy_data[dummies]
+    y = dummy_data[[target]]
 
+    xTrain, xTest, yTrain, yTest = train_test_split(x, y, train_size=.7)
+    yTest = yTest[target].to_numpy()
+    for k in range(1, maxK+1):
+        print('k=',k)
+        knn = KNeighborsClassifier(n_neighbors=k, n_jobs=-1)
+        print('Fitting...')
+        knn.fit(xTrain, yTrain)
+        print("Predicting...")
+        predict = knn.predict(xTest)
+        jaccard = jaccard_score(y_true=yTest, y_pred=predict)
+        f1 = f1_score(y_true=yTest, y_pred=predict)
+        _map[k] = [jaccard, f1]
+        print(_map[k])
+    print(_map)
+    acc_df = mm.create_acc_df(_map)
+    priority = str(priority)
+    base = 'data/acc_frames/dummy_acc_df_priority_{}'.format(priority)
+    mm.write_df_to_file(acc_df, base + '_{}.csv')
+    mm.graph_line_acc(acc_df)
 
-def create_acc_df(_map):
-    Ks = []
-    scoreTypes = []
-    scores = []
-    for k in _map.keys():
-        for i in range(0, 2):
-            l = _map.get(k)
-            Ks.append(k)
-            scoreTypes.append('Jaccard Index' if i == 0 else 'F1 Score')
-            scores.append(l[i])
-    return pd.DataFrame(data={'Index': Ks,
-                               'Score Type': scoreTypes,
-                               'Score': scores}, columns=['Index', 'Score Type', 'Score'])
-
-
-def filter_columns(_data, list_of_columns):
-    for _c in _data.columns:
-        if _c not in list_of_columns:
-            _data.drop(_c, axis=1, inplace=True)
-    return _data
 
 
 def iterate_through_k(_data, maxK, target='death_yn'):
     _map = {}
+
 
     print('creating dummies for these columns:', _data.columns)
     dummies = pd.get_dummies(_data)
@@ -147,7 +179,7 @@ def iterate_through_k(_data, maxK, target='death_yn'):
     print(dummies.columns)
     y = dummies[[target]]
 
-    xTrain, xTest, yTrain, yTest = train_test_split(x, y, test_size=.7)
+    xTrain, xTest, yTrain, yTest = train_test_split(x, y, train_size=.7)
 
     yTest = yTest[target].to_numpy()
 
@@ -165,8 +197,6 @@ def iterate_through_k(_data, maxK, target='death_yn'):
         jaccard = jaccard_score(y_pred=predicted, y_true=yTest)
         f1 = f1_score(y_pred=predicted, y_true=yTest)
 
-        _map.__setitem__(k, [jaccard, f1])
+        _map[k] = [jaccard, f1]
         print(_map.get(k))
     return _map
-
-
