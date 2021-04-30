@@ -21,38 +21,45 @@ def use_rfe(_data, x_columns, target):
     print(rfe.ranking_)
     m = create_map_ranking(rfe.ranking_, x.columns)
 
-    for k in m.keys():
-        print(k, '\t', m.get(k))
+    with open('data/rfe_{}_columns_results.txt'.format(x.shape[1]), 'w') as f:
+        f.write('Columns analyzed:' + " " + x.columns.__str__())
+        f.write('\nMap Generated from analysis:\n')
+        for i in sorted(m.keys()):
+            f.write('{} : {}\n'.format(i, m.get(i).__str__()))
+    return m
 
 
 def use_rfecv(_data, x_columns, target):
     x, y = mm.create_x_y(_data, x_columns, target)
-
     print(x.shape)
     print(x.columns)
 
     lm = LogisticRegression(n_jobs=-1, verbose=True, max_iter=10_000)
-    print("Creating RFE")
+    print("Creating RFECV")
     rfe = RFECV(estimator=lm, verbose=True, cv=4)
     print("Fitting training data")
     rfe.fit(x, y)
     print(rfe.ranking_)
     m = create_map_ranking(rfe.ranking_, x.columns)
 
-    for k in m.keys():
-        print(k, '\t', m.get(k))
+    with open('data/rfecv_{}_columns_results.txt'.format(x.shape[1]), 'w') as f:
+        f.write('Columns analyzed:' + " " + x.columns.__str__())
+        f.write('\nMap Generated from analysis:\n')
+        for i in sorted(m.keys()):
+            f.write('{} : {}\n'.format(i, m.get(i).__str__()))
+    return m
 
 
 def create_map_ranking(rankings, columns):
-    map = {}
+    _map = {}
     for i, c in enumerate(rankings):
-        if c in map.keys():
-            t = map.get(c)
+        if c in _map.keys():
+            t = _map.get(c)
             t.append(columns[i])
-            map[c] = t
+            _map[c] = t
         else:
-            map[c] = [columns[i]]
-    return map
+            _map[c] = [columns[i]]
+    return _map
 
 
 def iterate_through_dummies(_data, x_columns, target):
