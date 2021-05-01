@@ -42,7 +42,8 @@ def use_rfecv(_data, x_columns, target):
     print(rfe.ranking_)
     m = create_map_ranking(rfe.ranking_, x.columns)
 
-    with open('data/rfecv_{}_columns_results.txt'.format(x.shape[1]), 'w') as f:
+    with open('data/rfecv_{}_target_{}_columns_results.txt'.format(x.shape[1], target), 'w') as f:
+        f.write('Target: ' + target + '\n')
         f.write('Columns analyzed:' + " " + x.columns.__str__())
         f.write('\nMap Generated from analysis:\n')
         for i in sorted(m.keys()):
@@ -60,6 +61,22 @@ def create_map_ranking(rankings, columns):
         else:
             _map[c] = [columns[i]]
     return _map
+
+
+def find_prob_validate(_data, dummies, target, priority):
+    print(dummies)
+    dummy_data = pd.get_dummies(_data)
+    x = dummy_data[dummies]
+    y = dummy_data[[target]]
+
+    xTrain, xTest, yTrain, yTest = train_test_split(x, y, train_size=.7)
+    yTest = yTest[target].to_numpy()
+
+    lm = LogisticRegression(n_jobs=-1, verbose=True, max_iter=10_000)
+    lm.fit(xTrain, yTrain)
+    yHat = lm.predict(xTest)
+    ll = log_loss(y_true=yTest, y_pred=yHat)
+    return ll
 
 
 def iterate_through_dummies(_data, x_columns, target):
