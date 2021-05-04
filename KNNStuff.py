@@ -8,6 +8,7 @@ import Cleaning as c
 import warnings
 from datetime import datetime as dt
 import ModelMethods as mm
+import os
 
 
 def find_targets(_data, x_columns, target_columns, include_targets, k=5):
@@ -140,7 +141,7 @@ def find_graph_k_dummies(_data, dummies, maxK, target, priority):
     xTrain, xTest, yTrain, yTest = train_test_split(x, y, train_size=.7)
     yTest = yTest[target].to_numpy()
     for k in range(1, maxK+1):
-        print('k=',k)
+        print('k=', k)
         knn = KNeighborsClassifier(n_neighbors=k, n_jobs=-1)
         print('Fitting...')
         knn.fit(xTrain, yTrain)
@@ -153,15 +154,19 @@ def find_graph_k_dummies(_data, dummies, maxK, target, priority):
     print(_map)
     acc_df = mm.create_acc_df(_map)
     priority = str(priority)
-    base = 'data/acc_frames/dummy_acc_df_priority_{}'.format(priority)
+
+    folder = 'data/acc_frames/{}'.format(target)
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+
+    base = '{}/dummy_acc_df_priority_{}'.format(folder, priority)
     mm.write_df_to_file(acc_df, base + '_{}.csv')
-    mm.graph_line_acc(acc_df)
+    #mm.graph_line_acc(acc_df)
 
 
 
 def iterate_through_k(_data, maxK, target='death_yn'):
     _map = {}
-
 
     print('creating dummies for these columns:', _data.columns)
     dummies = pd.get_dummies(_data)
