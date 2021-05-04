@@ -3,13 +3,17 @@ import os
 import glob
 
 
-def get_private_data():
-    return pd.read_csv('data/private_data/combined_csv.csv')
+def get_raw_private_data(month):
+    return pd.read_csv('data/private_data/{}/combined_data_{}.csv'.format(month, month))
+
+
+def get_dropped_private_data(month):
+    return pd.read_csv('data/private_data/{}/combined_dropped_data_{}.csv'.format(month, month))
 
 
 def combine_all_private_data():
     # Change the directory path to your data input directory
-    os.chdir(r"C:\Users\Andrew\Desktop\covid19caseAnalysis\data\private_data")
+    os.chdir(r'C:\Users\Andrew\Desktop\covid19caseAnalysis\data\private_data\april')
 
     extension = 'csv'
     all_filenames = [i for i in glob.glob('*.{}'.format(extension))]
@@ -18,7 +22,7 @@ def combine_all_private_data():
     combined_csv = pd.concat([pd.read_csv(f, dtype='unicode') for f in all_filenames])
 
     # Export to csv
-    combined_csv.to_csv("combined_csv.csv", index=False, encoding='utf-8-sig')
+    combined_csv.to_csv("combined_data_april.csv", index=False, encoding='utf-8-sig')
 
 
 def get_public_data(source='api'):
