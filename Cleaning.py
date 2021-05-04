@@ -2,6 +2,17 @@ import pandas as pd
 import plotly.express as px
 
 
+def find_nil_value_frequency_of_columns(_data, in_these_columns):
+    _map = {}
+    rows = _data.shape[0]
+    for col in in_these_columns:
+        print('Working on', col)
+        temp = _data[(_data[col] == 'Unknown') | (_data[col] == 'Missing')]
+        _map[col] = temp.shape[0]
+    return pd.DataFrame(data={'Column:': _map.keys(),
+                              'Unknown/Missing': _map.values()})
+
+
 def drop_rows_with_nil_values(_data, in_these_columns):
     # Verify that all columns in in_these_columns exists as a column
     print("Validating that these columns exist in the dataframe...")
@@ -23,8 +34,6 @@ def drop_useless(_data):
     for c in _data.columns:
         print('Currently working on: ', c)
         _data = _data[(_data[c] != 'Missing') & (_data[c] != 'Unknown')]
-
-    #_data.to_csv('data/no_missing_no_unknown.csv')
     return _data
 
 
@@ -36,7 +45,7 @@ def create_default_map(_n):
 
 
 def create_map_of_unknown_or_missing(_data):
-    candidate_columns = _data.columns[4:]
+    candidate_columns = _data.columns
 
     print("Initializing the map...")
     _map = create_default_map(len(candidate_columns))
