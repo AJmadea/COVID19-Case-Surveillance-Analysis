@@ -112,9 +112,43 @@ def update(data):
 
     for col in cols:
         current_columns = cols.copy()
-
         _m = l.use_rfecv(data, current_columns, col)
-
         target_dummies = get_different_dummies_columns(data[[col]])
         for target in target_dummies:
-            ks.find_graph_k_dummies(data, dummies=_m[1], target=target, maxK=10, priority='')
+            ks.find_graph_k_dummies(data, dummies=_m[1], target=target, maxK=10, priority='nan')
+
+
+def get_graphs(data):
+    base = 'data/acc_frames/{}/'
+    cols = get_cols()
+    cols.remove('res_state')
+
+    dummy_names = get_different_dummies_columns(data[cols])
+    datas = []
+    for e in dummy_names:
+        d = base.format(e.replace('/', "_").replace(' ', '_'))
+        temp = pd.read_csv(d + os.listdir(d)[0])
+        temp['TARGET'] = e
+        datas.append(temp)
+
+    all_data = pd.concat(datas)
+    f1_scores = all_data[all_data['Score Type'] == 'F1 Score']
+    f1_scores = f1_scores[f1_scores['Score'] >= 0.5]
+    jaccards = all_data[all_data['Score Type'] == 'Jaccard Index']
+    jaccards = jaccards[jaccards['Score'] >= 0.5]
+
+    f1_scores = f1_scores[f1_scores['Index'] == 5]
+    jaccards = jaccards[jaccards['Index'] == 5]
+
+    f1_scores.sort_values(by='Score', inplace=True, ascending=False)
+    jaccards.sort_values(by='Score', inplace=True, ascending=False)
+
+    f = px.bar(f1_scores, x='TARGET', y='Score', title='F1 Score For Each Target')
+    f.show()
+    j = px.bar(jaccards, x='TARGET', y='Score', title='Jaccard Index For Each Target')
+    j.show()
+    f1 = px.line(f1_scores, x='Index', y='Score', color='TARGET', title='F1 Scores')
+    f1.show()
+    jac_fig = px.line(jaccards, x='Index', y='Score', color='TARGET', title='Jaccard Index')
+    jac_fig.show()
+    all_data.to_csv('data/acc_frames/rfecv_4f_knn_1_to_10_april.csv')
