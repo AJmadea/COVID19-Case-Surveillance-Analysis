@@ -2,6 +2,8 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime as dt
 import os
+import Logistic as l
+import KNNStuff as ks
 
 
 def combine_dataframes(target):
@@ -102,3 +104,17 @@ def get_cols():
             'acuterespdistress_yn', 'mechvent_yn', 'fever_yn', 'sfever_yn', 'chills_yn', 'myalgia_yn', 'runnose_yn',
             'sthroat_yn', 'cough_yn', 'sob_yn', 'nauseavomit_yn', 'headache_yn', 'abdom_yn', 'diarrhea_yn',
             'medcond_yn', 'res_state', 'age_group']
+
+
+def update(data):
+    cols = get_cols()
+    cols.remove('res_state')
+
+    for col in cols:
+        current_columns = cols.copy()
+
+        _m = l.use_rfecv(data, current_columns, col)
+
+        target_dummies = get_different_dummies_columns(data[[col]])
+        for target in target_dummies:
+            ks.find_graph_k_dummies(data, dummies=_m[1], target=target, maxK=10, priority='')
