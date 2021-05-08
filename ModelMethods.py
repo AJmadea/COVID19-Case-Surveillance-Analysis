@@ -85,7 +85,6 @@ def get_different_dummies_columns(_data):
     c = []
     for col in columns:
         l = _data[col].unique()
-
         for e in l:
             if str(e) != "nan":
                 c.append(str(col) + "_" + str(e))
@@ -95,3 +94,11 @@ def get_different_dummies_columns(_data):
 def write_df_to_file(dataframe, filename):
     current = dt.today().isoformat().replace(':', '_').replace('-', '_')
     dataframe.to_csv(filename.format(current))
+
+
+def get_cols():
+    return ['race_ethnicity_combined', 'current_status', 'sex',
+            'hosp_yn', 'icu_yn', 'death_yn', 'hc_work_yn', 'pna_yn', 'abxchest_yn',
+            'acuterespdistress_yn', 'mechvent_yn', 'fever_yn', 'sfever_yn', 'chills_yn', 'myalgia_yn', 'runnose_yn',
+            'sthroat_yn', 'cough_yn', 'sob_yn', 'nauseavomit_yn', 'headache_yn', 'abdom_yn', 'diarrhea_yn',
+            'medcond_yn', 'res_state', 'age_group']
